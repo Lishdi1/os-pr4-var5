@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 DIR="${1:-.}"
 
-norm5=$(tr -d '\r' < "$DIR/query5" | tr -s ' ' | sed 's/^ *//')
-maxqty=$(printf '%s\n' "$norm5" | sort -t' ' -k5,5 -nr | head -n1 | cut -d' ' -f5)
+# максимальное количество экземпляров в одном заказе (5-е поле query5)
+max=$(tr -d '\r' < "$DIR/query5" | tr -s ' ' | cut -d' ' -f5 | sort -nr | head -1)
 
-echo "Максимальное количество экземпляров товара в одном заказе: $maxqty"
-echo "Позиции заказов с этим количеством:"
-echo
+echo "Максимальное количество экземпляров в одном заказе: $max"
+echo "Товары, заказанные в этом количестве:"
 
-qre=$(printf '%s\n' "$maxqty" | sed 's/\./\\./g')
-printf '%s\n' "$norm5" \
-  | grep "^[^ ]* [^ ]* [^ ]* [^ ]* ${qre} " \
-  | while read -r pos ord code price qty rest; do
-      name=$(tr -d '\r' < "$DIR/query3" | grep "^${code}!" | head -n1 | cut -d'!' -f2 | sed 's/ *$//')
-      echo "    заказ № ${ord}: товар «${name}» (код ${code}) — ${qty} шт."
+# коды товаров с этим количеством извлекаются из данных автоматически,
+# по ним берём названия из каталога query3 (коды нигде не вписываются вручную)
+tr -d '\r' < "$DIR/query5" | tr -s ' ' | cut -d' ' -f3,5 \
+  | grep " $max\$" | cut -d' ' -f1 | sort -u \
+  | while read code; do
+      name=$(tr -d '\r' < "$DIR/query3" | grep "^$code!" | cut -d'!' -f2 | sed 's/ *$//')
+      echo "    $code: $name"
     done
